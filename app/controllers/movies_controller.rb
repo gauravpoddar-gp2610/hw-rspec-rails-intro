@@ -45,7 +45,51 @@ class MoviesController < ApplicationController
     redirect_to movies_path
   end
 
+  def search_tmdb
+    if params.key?(:title) && params[:title].blank?
+      flash.now[:danger] = 'Please fill in all required fields!'
+      render 'search_tmdb'
+      return
+    end
+
+    terms = params[:title].presence || params[:search_terms].presence
+    if terms.present?
+      search_param = if params[:search_terms].present?
+                       params[:search_terms]
+                     else
+                       { title: params[:title], release_year: params[:release_year], language: params[:language] }
+                     end
+      begin
+        @movies = Movie.find_in_tmdb(search_param)
+        if @movies.blank?
+          flash.now[:warning] = 'No movies found with given parameters!'
+        end
+      rescue Movie::InvalidKeyError
+        flash.now[:danger] = 'Invalid API key'
+        @movies = []
+      end
+    end
+
+    render 'search_tmdb'
+  end
+
+  def add_movie
+    movie_attributes = if params[:movie].present?
+                         params.require(:movie).permit(:title, :rating, :description, :release_date)
+                       else
+                         params.permit(:title, :rating, :description, :release_date)
+                       end
+
+    @movie = Movie.create!(movie_attributes)
+    flash[:success] = "#{@movie.title} was successfully added to RottenPotatoes."
+    redirect_to search_tmdb_path
+  end
+
   private
+
+  def movie_params
+    params.require(:movie).permit(:title, :rating, :description, :release_date)
+  end
 
   def force_index_redirect
     return unless !params.key?(:ratings) || !params.key?(:sort_by)

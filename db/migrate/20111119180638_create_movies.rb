@@ -1,6 +1,6 @@
 class CreateMovies < ActiveRecord::Migration[Rails.version.to_f]
-def up
-    create_table :movies do |t|
+  def up
+    create_table :movies, if_not_exists: true do |t|
       t.string :title
       t.string :rating
       t.text :description
@@ -12,6 +12,6 @@ def up
   end
 
   def down
-    drop_table :movies
+    drop_table :movies, if_exists: true
   end
 end
